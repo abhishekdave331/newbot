@@ -1,34 +1,37 @@
 import streamlit as st
+import os
+from dotenv import load_dotenv
+import google.generativeai as genai
 
-# Page config
+# Load API key
+load_dotenv()
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+# Page setup
 st.set_page_config(page_title="Google Chatbot", page_icon="🤖")
 st.title("🤖 Google Chatbot")
 
-# Initialize session state for messages
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# Initialize chat memory (Gemini chat model session)
+if "chat" not in st.session_state:
+    st.session_state.chat = genai.GenerativeModel("gemini-1.5-flash").start_chat(history=[])
 
-# Display chat history
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# Show chat history
+for msg in st.session_state.chat.history:
+    with st.chat_message("user" if msg.role == "user" else "assistant"):
+        st.markdown(msg.parts[0].text)
 
-# Chat input box
+# Input box
 prompt = st.chat_input("Ask me anything...")
 
-# Dummy response logic (replace with actual model call)
-def get_bot_response(user_input):
-    return f"You said: {user_input}"
-
-# When user sends a message
+# If prompt is entered
 if prompt:
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    # Show user message
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Get and show bot response
-    response = get_bot_response(prompt)
-    st.session_state.messages.append({"role": "assistant", "content": response})
+    # Send to Gemini and get response
+    response = st.session_state.chat.send_message(prompt)
+
+    # Show assistant response
     with st.chat_message("assistant"):
-        st.markdown(response)
+        st.markdown(response.text)
